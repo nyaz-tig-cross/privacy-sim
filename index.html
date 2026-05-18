@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>プライバシー分類ワークシート</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP',sans-serif;background:#f0f4f0;min-height:100vh;padding:1rem}
+#app{max-width:860px;margin:0 auto}
+header{background:#2e7d32;color:#fff;border-radius:12px;padding:1rem 1.5rem;margin-bottom:1rem;text-align:center}
+header h1{font-size:19px;font-weight:500;line-height:1.5}
+header p{font-size:16px;opacity:0.9;margin-top:6px;line-height:1.6}
+.top-label{background:#fff;border-radius:10px;border:0.5px solid #c8e6c9;padding:0.6rem 0.75rem;margin-bottom:1rem}
+.top-label-row{display:flex;align-items:center;justify-content:space-between}
+.top-label-text{font-size:15px;color:#555}
+.remaining-badge{background:#e8f5e9;color:#2e7d32;font-size:15px;font-weight:500;padding:4px 12px;border-radius:20px;border:1px solid #a5d6a7}
+.cards-area{background:#fff;border-radius:10px;border:1px solid #c8e6c9;padding:1rem;margin-bottom:1rem;min-height:100px}
+.cards-grid{display:flex;flex-wrap:wrap;gap:10px;min-height:80px;align-content:flex-start}
+.card{display:inline-flex;align-items:center;justify-content:center;text-align:center;padding:12px 18px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;font-size:16px;font-weight:400;color:#1b5e20;cursor:grab;user-select:none;touch-action:none;transition:box-shadow 0.12s,opacity 0.12s;white-space:pre-line;line-height:1.5;min-width:96px;min-height:56px}
+.card:hover{background:#c8e6c9;border-color:#66bb6a}
+.card.dragging{opacity:0.35;cursor:grabbing}
+.card.floating{position:fixed;z-index:9999;pointer-events:none;opacity:0.93;box-shadow:0 6px 20px rgba(0,0,0,0.2);cursor:grabbing;border-radius:8px}
+.zones{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:580px){.zones{grid-template-columns:1fr}}
+.zone{border-radius:12px;border:2px solid transparent;padding:14px;min-height:280px;transition:filter 0.1s}
+.zone-private{background:#fff0f0;border-color:#ef9a9a}
+.zone-neutral{background:#fffde7;border-color:#ffe082}
+.zone-public{background:#f3e5f5;border-color:#ce93d8}
+.zone.drag-over{filter:brightness(0.92);border-width:3px}
+.zone-title{font-size:16px;font-weight:500;padding:7px 14px;border-radius:20px;display:inline-block;margin-bottom:12px}
+.zone-private .zone-title{background:#c62828;color:#fff}
+.zone-neutral .zone-title{background:#f57f17;color:#fff}
+.zone-public .zone-title{background:#7b1fa2;color:#fff}
+.zone-cards{display:flex;flex-wrap:wrap;gap:8px;min-height:120px;align-content:flex-start}
+.zone .card{font-size:15px;padding:10px 14px;min-width:84px;min-height:52px;background:#e8f5e9;border-color:#a5d6a7;color:#1b5e20}
+.zone-counter{font-size:13px;color:#888;margin-top:8px;text-align:right}
+.btns{display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap}
+.btn-main{flex:1;padding:10px;font-size:14px;font-weight:500;border-radius:8px;background:#2e7d32;color:#fff;border:none;cursor:pointer;transition:background 0.15s;font-family:inherit}
+.btn-main:hover{background:#1b5e20}
+.btn-reset{padding:10px 20px;font-size:13px;border-radius:8px;background:#fff;color:#555;border:1px solid #ccc;cursor:pointer;font-family:inherit}
+.btn-reset:hover{background:#f5f5f5}
+.summary-box{margin-top:1rem;padding:14px;background:#fff;border-radius:10px;border:1px solid #c8e6c9;font-size:13px;color:#333;line-height:1.8;display:none}
+.summary-box h3{font-size:14px;font-weight:500;color:#2e7d32;margin-bottom:8px}
+.summary-section{margin-bottom:10px}
+.summary-section .label{font-weight:500;margin-bottom:3px}
+.summary-section .items{color:#555;font-size:13px}
+.s-private .label{color:#c62828}
+.s-neutral .label{color:#f57f17}
+.s-public .label{color:#7b1fa2}
+.footer{text-align:center;font-size:11px;color:#999;margin-top:1.5rem;padding-bottom:1rem}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>プライバシー分類ワークシート</h1>
+    <p>SNSへ投稿しても良い情報と、そうとは思わない情報の違いを考えてみましょう</p>
+  </header>
+
+  <div class="top-label">
+    <div class="top-label-row">
+      <span class="top-label-text">振り分ける項目をドラッグ（またはタッチ）して3つのグループに分類してください</span>
+      <span class="remaining-badge">残り <span id="remaining">14</span> 個</span>
+    </div>
+  </div>
+
+  <div class="cards-area">
+    <div class="cards-grid" id="source" data-zone="source"></div>
+  </div>
+
+  <div class="zones">
+    <div class="zone zone-private" id="zone-private" data-zone="private">
+      <div class="zone-title">🔒 公開されたくない情報</div>
+      <div class="zone-cards" id="cards-private"></div>
+      <div class="zone-counter" id="count-private">0 件</div>
+    </div>
+    <div class="zone zone-neutral" id="zone-neutral" data-zone="neutral">
+      <div class="zone-title">🤔 どちらでもない情報</div>
+      <div class="zone-cards" id="cards-neutral"></div>
+      <div class="zone-counter" id="count-neutral">0 件</div>
+    </div>
+    <div class="zone zone-public" id="zone-public" data-zone="public">
+      <div class="zone-title">✅ 公開されてもよい情報</div>
+      <div class="zone-cards" id="cards-public"></div>
+      <div class="zone-counter" id="count-public">0 件</div>
+    </div>
+  </div>
+
+  <div class="btns">
+    <button class="btn-main" onclick="showSummary()">結果をまとめて確認する</button>
+    <button class="btn-reset" onclick="resetAll()">リセット</button>
+  </div>
+
+  <div class="summary-box" id="summaryBox">
+    <h3>あなたの分類結果</h3>
+    <div id="summaryContent"></div>
+  </div>
+
+  <div class="footer">高校情報Ⅰ「プライバシー」学習ワークシート</div>
+</div>
+
+<script>
+const ITEMS=[
+  {id:"a",label:"出席番号"},
+  {id:"b",label:"担任の名前"},
+  {id:"c",label:"SNSのID"},
+  {id:"d",label:"性別"},
+  {id:"e",label:"SNSの\nフォロワー"},
+  {id:"f",label:"生年月日"},
+  {id:"g",label:"出身\n中学校名"},
+  {id:"h",label:"名前\n（本名）"},
+  {id:"i",label:"SNSの\n発言一覧"},
+  {id:"j",label:"○○高校\nXX期生"},
+  {id:"k",label:"親友との\n写真画像"},
+  {id:"l",label:"住所"},
+  {id:"m",label:"高校名"},
+  {id:"n",label:"クラスや部活の\n集合写真"}
+];
+
+let state={};
+ITEMS.forEach(it=>state[it.id]="source");
+
+function getContainer(zone){
+  if(zone==="source")return document.getElementById("source");
+  return document.getElementById("cards-"+zone);
+}
+
+function render(){
+  ["source","private","neutral","public"].forEach(zone=>{
+    const c=getContainer(zone);
+    if(!c)return;
+    c.innerHTML="";
+    ITEMS.filter(it=>state[it.id]===zone).forEach(it=>{
+      const el=document.createElement("div");
+      el.className="card";
+      el.dataset.id=it.id;
+      el.textContent=it.label;
+      c.appendChild(el);
+    });
+  });
+  const rem=ITEMS.filter(it=>state[it.id]==="source").length;
+  document.getElementById("remaining").textContent=rem;
+  ["private","neutral","public"].forEach(z=>{
+    document.getElementById("count-"+z).textContent=ITEMS.filter(it=>state[it.id]===z).length+" 件";
+  });
+  attachDrag();
+}
+
+let dragId=null,floatEl=null,offsetX=0,offsetY=0;
+
+function attachDrag(){
+  document.querySelectorAll(".card").forEach(el=>{
+    el.removeEventListener("mousedown",startDrag);
+    el.removeEventListener("touchstart",startDragTouch);
+    el.addEventListener("mousedown",startDrag,{passive:false});
+    el.addEventListener("touchstart",startDragTouch,{passive:false});
+  });
+}
+
+function startDrag(e){
+  if(e.button!==0)return;
+  e.preventDefault();
+  const el=e.currentTarget;
+  dragId=el.dataset.id;
+  const r=el.getBoundingClientRect();
+  offsetX=e.clientX-r.left;offsetY=e.clientY-r.top;
+  createFloat(el,e.clientX,e.clientY);
+  el.classList.add("dragging");
+  document.addEventListener("mousemove",onMove);
+  document.addEventListener("mouseup",endDrag);
+}
+
+function startDragTouch(e){
+  e.preventDefault();
+  const touch=e.touches[0];
+  const el=e.currentTarget;
+  dragId=el.dataset.id;
+  const r=el.getBoundingClientRect();
+  offsetX=touch.clientX-r.left;offsetY=touch.clientY-r.top;
+  createFloat(el,touch.clientX,touch.clientY);
+  el.classList.add("dragging");
+  document.addEventListener("touchmove",onMoveTouch,{passive:false});
+  document.addEventListener("touchend",endDragTouch);
+}
+
+function createFloat(el,cx,cy){
+  floatEl=el.cloneNode(true);
+  floatEl.className=el.className+" floating";
+  floatEl.style.width=el.offsetWidth+"px";
+  floatEl.style.height=el.offsetHeight+"px";
+  floatEl.style.left=(cx-offsetX)+"px";
+  floatEl.style.top=(cy-offsetY)+"px";
+  document.body.appendChild(floatEl);
+}
+
+function onMove(e){
+  if(!floatEl)return;
+  floatEl.style.left=(e.clientX-offsetX)+"px";
+  floatEl.style.top=(e.clientY-offsetY)+"px";
+  highlightZone(e.clientX,e.clientY);
+}
+function onMoveTouch(e){
+  e.preventDefault();
+  if(!floatEl)return;
+  const t=e.touches[0];
+  floatEl.style.left=(t.clientX-offsetX)+"px";
+  floatEl.style.top=(t.clientY-offsetY)+"px";
+  highlightZone(t.clientX,t.clientY);
+}
+
+function highlightZone(cx,cy){
+  document.querySelectorAll(".zone").forEach(z=>{
+    const r=z.getBoundingClientRect();
+    z.classList.toggle("drag-over",cx>=r.left&&cx<=r.right&&cy>=r.top&&cy<=r.bottom);
+  });
+}
+
+function endDrag(e){
+  document.removeEventListener("mousemove",onMove);
+  document.removeEventListener("mouseup",endDrag);
+  dropAt(e.clientX,e.clientY);
+}
+function endDragTouch(e){
+  document.removeEventListener("touchmove",onMoveTouch);
+  document.removeEventListener("touchend",endDragTouch);
+  const t=e.changedTouches[0];
+  dropAt(t.clientX,t.clientY);
+}
+
+function dropAt(cx,cy){
+  if(floatEl){floatEl.remove();floatEl=null;}
+  document.querySelectorAll(".card.dragging").forEach(el=>el.classList.remove("dragging"));
+  document.querySelectorAll(".zone").forEach(z=>z.classList.remove("drag-over"));
+  if(!dragId)return;
+  let dropped=false;
+  ["private","neutral","public"].forEach(zone=>{
+    const z=document.getElementById("zone-"+zone);
+    const r=z.getBoundingClientRect();
+    if(cx>=r.left&&cx<=r.right&&cy>=r.top&&cy<=r.bottom){
+      state[dragId]=zone;dropped=true;
+    }
+  });
+  if(!dropped){
+    const src=document.getElementById("source");
+    const r=src.getBoundingClientRect();
+    if(cx>=r.left&&cx<=r.right&&cy>=r.top&&cy<=r.bottom){
+      state[dragId]="source";
+    }
+  }
+  dragId=null;
+  render();
+  document.getElementById("summaryBox").style.display="none";
+}
+
+function showSummary(){
+  const placed=ITEMS.filter(it=>state[it.id]!=="source");
+  if(placed.length===0){
+    alert("まだ何も振り分けられていません。");
+    return;
+  }
+  const zones=[
+    {key:"private",label:"🔒 公開されたくない情報",cls:"s-private"},
+    {key:"neutral",label:"🤔 どちらでもない情報",cls:"s-neutral"},
+    {key:"public",label:"✅ 公開されてもよい情報",cls:"s-public"}
+  ];
+  let html="";
+  zones.forEach(z=>{
+    const items=ITEMS.filter(it=>state[it.id]===z.key);
+    if(items.length===0)return;
+    html+=`<div class="summary-section ${z.cls}"><div class="label">${z.label}（${items.length}件）</div><div class="items">${items.map(it=>it.label.replace("\n","")).join("　／　")}</div></div>`;
+  });
+  const unplaced=ITEMS.filter(it=>state[it.id]==="source");
+  if(unplaced.length>0){
+    html+=`<div class="summary-section"><div class="label" style="color:#999">未分類（${unplaced.length}件）</div><div class="items" style="color:#aaa">${unplaced.map(it=>it.label.replace("\n","")).join("　／　")}</div></div>`;
+  }
+  document.getElementById("summaryContent").innerHTML=html;
+  const box=document.getElementById("summaryBox");
+  box.style.display="block";
+  box.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function resetAll(){
+  ITEMS.forEach(it=>state[it.id]="source");
+  document.getElementById("summaryBox").style.display="none";
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
